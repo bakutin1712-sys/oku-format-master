@@ -29,8 +29,8 @@ export function DocxPreview({ buffer }: { buffer: ArrayBuffer | null }) {
 
   return (
     <div
-      className="prose prose-sm max-w-none overflow-auto rounded-2xl border bg-card p-8 shadow-sm"
-      style={{ minHeight: 500, maxHeight: "75vh" }}
+      className="doc-preview-serif prose prose-sm max-w-none overflow-auto rounded-2xl border bg-card p-10 shadow-sm"
+      style={{ minHeight: 500, maxHeight: "75vh", fontSize: "12pt", lineHeight: 1.5 }}
     >
       {loading ? (
         <p className="text-muted-foreground">Жүктөлүүдө…</p>
