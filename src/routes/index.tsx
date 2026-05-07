@@ -19,6 +19,9 @@ import {
   Sparkles,
   ExternalLink,
   ShieldCheck,
+  Clock,
+  Printer,
+  Gift,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
