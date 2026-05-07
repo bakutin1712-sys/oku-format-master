@@ -2,9 +2,19 @@
 // (no numbering / lower-roman / decimal) and injects a centered footer
 // with a PAGE field rendered in 12pt Times New Roman.
 import PizZip from "pizzip";
+import { NumberFormat, SectionType } from "docx";
 import { KTMU, cmToTwips } from "./ktmu-constants";
 
 type SectionKind = "none" | "roman" | "arabic";
+
+export type KtmuFormattingResult = {
+  output: Uint8Array;
+  warning?: string;
+};
+
+const KEYWORDS_NOT_DETECTED_WARNING = "Keywords not detected, using default KTMU structure.";
+const ROMAN_TRIGGER = /(?:БАШ\s*СӨЗ|АЛГЫ\s*СӨЗ|ÖN\s*SÖZ|ON\s*SOZ|PREFACE)/iu;
+const ARABIC_TRIGGER = /(?:КЫСКАЧА\s*МАЗМУНУ|ÖZET|OZET|SUMMARY)/iu;
 
 const FOOTER_REL_IDS: Record<Exclude<SectionKind, "none">, string> = {
   roman: "rIdOkUFooterRoman",
@@ -44,19 +54,42 @@ const SECT_PR = (kind: SectionKind) => {
   let pgNumType = "";
   let footerRef = "";
   if (kind === "roman") {
-    pgNumType = `<w:pgNumType w:fmt="lowerRoman" w:start="1"/>`;
+    pgNumType = `<w:pgNumType w:fmt="${NumberFormat.LOWER_ROMAN}" w:start="1"/>`;
     footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.roman}"/>`;
   } else if (kind === "arabic") {
-    pgNumType = `<w:pgNumType w:fmt="decimal" w:start="1"/>`;
+    pgNumType = `<w:pgNumType w:fmt="${NumberFormat.DECIMAL}" w:start="1"/>`;
     footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.arabic}"/>`;
   }
-  return `<w:sectPr>${footerRef}<w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="708" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
+  return `<w:sectPr>${footerRef}<w:type w:val="${SectionType.NEXT_PAGE}"/><w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="708" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
 };
 
-const containsKeyword = (text: string, keywords: readonly string[]) => {
-  const upper = text.toUpperCase();
-  return keywords.some((k) => upper.includes(k.toUpperCase()));
+const normalizeForSearch = (text: string) => text.normalize("NFC").toLocaleUpperCase("tr-TR");
+
+const decodeXmlText = (text: string) =>
+  text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(parseInt(dec, 10)));
+
+const matchesTrigger = (text: string, trigger: RegExp) => {
+  trigger.lastIndex = 0;
+  return trigger.test(normalizeForSearch(text));
 };
+
+const hasPageBreak = (pXml: string) =>
+  /<w:br\b[^>]*w:type="page"/.test(pXml) || /<w:lastRenderedPageBreak\s*\/>/.test(pXml);
+
+function getThirdPageStartParagraph(paragraphs: { xml: string; text: string }[]): number {
+  const pageStarts = [0];
+  paragraphs.forEach((p, i) => {
+    if (hasPageBreak(p.xml) && i + 1 < paragraphs.length) pageStarts.push(i + 1);
+  });
+  return pageStarts[2] ?? Math.min(2, Math.max(0, paragraphs.length - 1));
+}
 
 function ensureRelationship(relsXml: string, id: string, target: string): string {
   if (relsXml.includes(`Id="${id}"`)) return relsXml;
@@ -70,7 +103,7 @@ function ensureContentType(ctXml: string, partName: string): string {
   return ctXml.replace(/<\/Types>/, `${override}</Types>`);
 }
 
-export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): Uint8Array {
+export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): KtmuFormattingResult {
   const zip = new PizZip(input);
   const docFile = zip.file("word/document.xml");
   if (!docFile) throw new Error("Invalid .docx: word/document.xml not found");
@@ -97,24 +130,30 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): Uint8Array
   while ((m = paraRegex.exec(body)) !== null) {
     const pXml = m[0];
     const text = (pXml.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) || [])
-      .map((t) => t.replace(/<[^>]+>/g, ""))
+      .map((t) => decodeXmlText(t.replace(/<[^>]+>/g, "")))
       .join("");
     paragraphs.push({ xml: pXml, text });
   }
 
   type Break = { paraIdx: number; kind: SectionKind };
   const breaks: Break[] = [];
-  let romanFound = false;
-  let arabicFound = false;
-  paragraphs.forEach((p, i) => {
-    if (!romanFound && containsKeyword(p.text, KTMU.romanKeywords)) {
-      breaks.push({ paraIdx: i, kind: "roman" });
-      romanFound = true;
-    } else if (!arabicFound && containsKeyword(p.text, KTMU.arabicKeywords)) {
-      breaks.push({ paraIdx: i, kind: "arabic" });
-      arabicFound = true;
-    }
-  });
+  let warning: string | undefined;
+
+  const romanStart = paragraphs.findIndex((p) => matchesTrigger(p.text, ROMAN_TRIGGER));
+  const arabicStart =
+    romanStart >= 0
+      ? paragraphs.findIndex((p, i) => i > romanStart && matchesTrigger(p.text, ARABIC_TRIGGER))
+      : -1;
+
+  if (romanStart >= 0) breaks.push({ paraIdx: romanStart, kind: "roman" });
+  if (arabicStart >= 0) breaks.push({ paraIdx: arabicStart, kind: "arabic" });
+
+  if (romanStart < 0) {
+    breaks.push({ paraIdx: getThirdPageStartParagraph(paragraphs), kind: "arabic" });
+    warning = KEYWORDS_NOT_DETECTED_WARNING;
+  } else if (arabicStart < 0) {
+    warning = KEYWORDS_NOT_DETECTED_WARNING;
+  }
 
   const sectionStarts: { start: number; kind: SectionKind }[] = [{ start: 0, kind: "none" }];
   breaks.forEach((b) => sectionStarts.push({ start: b.paraIdx, kind: b.kind }));
@@ -165,5 +204,5 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): Uint8Array
   zip.file(relsPath, relsXml);
   if (ctXml) zip.file(ctPath, ctXml);
 
-  return zip.generate({ type: "uint8array", compression: "DEFLATE" });
+  return { output: zip.generate({ type: "uint8array", compression: "DEFLATE" }), warning };
 }
