@@ -429,7 +429,7 @@ function StatusBadge({ label, delay }: { label: string; delay: number }) {
   );
 }
 
-function WhyCard({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
+function WhyCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
   return (
     <div className="glass-card group rounded-2xl p-6 transition-transform hover:-translate-y-1">
       <div
