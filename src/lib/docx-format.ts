@@ -6,6 +6,15 @@ import { KTMU, cmToTwips } from "./ktmu-constants";
 
 type SectionKind = "none" | "roman" | "arabic";
 
+export type KtmuFormattingResult = {
+  output: Uint8Array;
+  warning?: string;
+};
+
+const KEYWORDS_NOT_DETECTED_WARNING = "Keywords not detected, using default KTMU structure.";
+const ROMAN_TRIGGER = /(?:БАШ\s*СӨЗ|АЛГЫ\s*СӨЗ|ÖN\s*SÖZ|ON\s*SOZ|PREFACE)/iu;
+const ARABIC_TRIGGER = /(?:КЫСКАЧА\s*МАЗМУНУ|ÖZET|OZET|SUMMARY)/iu;
+
 const FOOTER_REL_IDS: Record<Exclude<SectionKind, "none">, string> = {
   roman: "rIdOkUFooterRoman",
   arabic: "rIdOkUFooterArabic",
@@ -50,13 +59,36 @@ const SECT_PR = (kind: SectionKind) => {
     pgNumType = `<w:pgNumType w:fmt="decimal" w:start="1"/>`;
     footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.arabic}"/>`;
   }
-  return `<w:sectPr>${footerRef}<w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="708" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
+  return `<w:sectPr>${footerRef}<w:type w:val="nextPage"/><w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="708" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
 };
 
-const containsKeyword = (text: string, keywords: readonly string[]) => {
-  const upper = text.toUpperCase();
-  return keywords.some((k) => upper.includes(k.toUpperCase()));
+const normalizeForSearch = (text: string) => text.normalize("NFC").toLocaleUpperCase("tr-TR");
+
+const decodeXmlText = (text: string) =>
+  text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(parseInt(dec, 10)));
+
+const matchesTrigger = (text: string, trigger: RegExp) => {
+  trigger.lastIndex = 0;
+  return trigger.test(normalizeForSearch(text));
 };
+
+const hasPageBreak = (pXml: string) =>
+  /<w:br\b[^>]*w:type="page"/.test(pXml) || /<w:lastRenderedPageBreak\s*\/>/.test(pXml);
+
+function getThirdPageStartParagraph(paragraphs: { xml: string; text: string }[]): number {
+  const pageStarts = [0];
+  paragraphs.forEach((p, i) => {
+    if (hasPageBreak(p.xml) && i + 1 < paragraphs.length) pageStarts.push(i + 1);
+  });
+  return pageStarts[2] ?? Math.min(2, Math.max(0, paragraphs.length - 1));
+}
 
 function ensureRelationship(relsXml: string, id: string, target: string): string {
   if (relsXml.includes(`Id="${id}"`)) return relsXml;
