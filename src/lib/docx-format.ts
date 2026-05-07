@@ -129,7 +129,7 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): Uint8Array
   while ((m = paraRegex.exec(body)) !== null) {
     const pXml = m[0];
     const text = (pXml.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) || [])
-      .map((t) => t.replace(/<[^>]+>/g, ""))
+      .map((t) => decodeXmlText(t.replace(/<[^>]+>/g, "")))
       .join("");
     paragraphs.push({ xml: pXml, text });
   }
@@ -138,15 +138,23 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): Uint8Array
   const breaks: Break[] = [];
   let romanFound = false;
   let arabicFound = false;
+  let warning: string | undefined;
   paragraphs.forEach((p, i) => {
-    if (!romanFound && containsKeyword(p.text, KTMU.romanKeywords)) {
+    if (!romanFound && matchesTrigger(p.text, ROMAN_TRIGGER)) {
       breaks.push({ paraIdx: i, kind: "roman" });
       romanFound = true;
-    } else if (!arabicFound && containsKeyword(p.text, KTMU.arabicKeywords)) {
+    } else if (!arabicFound && (romanFound || breaks.length === 0) && matchesTrigger(p.text, ARABIC_TRIGGER)) {
       breaks.push({ paraIdx: i, kind: "arabic" });
       arabicFound = true;
     }
   });
+
+  if (!romanFound && !arabicFound) {
+    breaks.push({ paraIdx: getThirdPageStartParagraph(paragraphs), kind: "arabic" });
+    warning = KEYWORDS_NOT_DETECTED_WARNING;
+  } else if (!romanFound || !arabicFound) {
+    warning = KEYWORDS_NOT_DETECTED_WARNING;
+  }
 
   const sectionStarts: { start: number; kind: SectionKind }[] = [{ start: 0, kind: "none" }];
   breaks.forEach((b) => sectionStarts.push({ start: b.paraIdx, kind: b.kind }));
@@ -197,5 +205,5 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): Uint8Array
   zip.file(relsPath, relsXml);
   if (ctXml) zip.file(ctPath, ctXml);
 
-  return zip.generate({ type: "uint8array", compression: "DEFLATE" });
+  return { output: zip.generate({ type: "uint8array", compression: "DEFLATE" }), warning };
 }
