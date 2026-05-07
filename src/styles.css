@@ -61,8 +61,60 @@
 
   --gradient-brand: linear-gradient(135deg, oklch(0.42 0.17 265), oklch(0.55 0.2 290));
   --gradient-soft: linear-gradient(180deg, oklch(0.985 0.005 250), oklch(0.96 0.02 255));
+  --gradient-hero: radial-gradient(1200px 600px at -10% -20%, oklch(0.55 0.2 265 / 0.18), transparent 60%),
+                   radial-gradient(900px 500px at 110% 10%, oklch(0.78 0.16 75 / 0.14), transparent 60%);
+  --gradient-cta: linear-gradient(135deg, oklch(0.78 0.18 55), oklch(0.62 0.24 25));
   --shadow-elegant: 0 20px 60px -25px oklch(0.42 0.17 265 / 0.35);
   --shadow-soft: 0 8px 30px -12px oklch(0.42 0.17 265 / 0.18);
+  --shadow-glow: 0 0 0 4px oklch(0.42 0.17 265 / 0.12), 0 12px 40px -10px oklch(0.42 0.17 265 / 0.35);
+}
+
+/* Subtle Kyrgyz "Kosh-Kaymulu" inspired ornament — extremely low opacity */
+.kg-ornament {
+  background-image:
+    radial-gradient(circle at 25% 25%, oklch(0.42 0.17 265 / 0.06) 0 2px, transparent 3px),
+    radial-gradient(circle at 75% 75%, oklch(0.42 0.17 265 / 0.06) 0 2px, transparent 3px),
+    linear-gradient(45deg, transparent 46%, oklch(0.42 0.17 265 / 0.04) 47% 53%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, oklch(0.42 0.17 265 / 0.04) 47% 53%, transparent 54%);
+  background-size: 48px 48px, 48px 48px, 96px 96px, 96px 96px;
+}
+
+.glass-card {
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+}
+
+@keyframes scanline {
+  0% { top: 0%; opacity: 0.0; }
+  10% { opacity: 1; }
+  50% { top: 100%; opacity: 1; }
+  60% { top: 100%; opacity: 0; }
+  100% { top: 0%; opacity: 0; }
+}
+.scanner-line {
+  position: absolute; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, oklch(0.55 0.2 265 / 0.95), transparent);
+  box-shadow: 0 0 24px 4px oklch(0.55 0.2 265 / 0.6);
+  animation: scanline 2.4s ease-in-out infinite;
+}
+
+.dropzone-glow { box-shadow: var(--shadow-glow); border-color: var(--primary) !important; background: color-mix(in oklab, var(--primary) 6%, var(--card)); }
+
+@keyframes pop-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+.pop-in { animation: pop-in 0.35s ease-out both; }
+
+.btn-electric {
+  background: linear-gradient(135deg, oklch(0.55 0.22 255), oklch(0.42 0.17 265));
+  color: var(--primary-foreground);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: var(--shadow-soft);
+}
+.btn-electric:hover { transform: translateY(-1px) scale(1.02); box-shadow: var(--shadow-glow); filter: brightness(1.05); }
+
+.doc-preview-serif, .doc-preview-serif * {
+  font-family: "Times New Roman", Times, serif !important;
 }
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap");
