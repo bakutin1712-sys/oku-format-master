@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { OkULogo } from "@/components/OkULogo";
 import { DocxPreview } from "@/components/DocxPreview";
 import { formatDocxKtmu } from "@/lib/docx.functions";
@@ -47,6 +48,7 @@ function OkUApp() {
   const [originalBuffer, setOriginalBuffer] = useState<ArrayBuffer | null>(null);
   const [processedBuffer, setProcessedBuffer] = useState<ArrayBuffer | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const formatFn = useServerFn(formatDocxKtmu);
 
@@ -95,16 +97,24 @@ function OkUApp() {
   async function runProcessing() {
     if (!originalBuffer) return;
     setStage("processing");
+    setProgress(8);
     const base64 = arrayBufferToBase64(originalBuffer);
+    // Smooth fake progress while server is patching XML
+    const tick = setInterval(() => {
+      setProgress((p) => (p < 88 ? p + Math.random() * 6 : p));
+    }, 220);
     try {
       const res = await formatFn({ data: { base64 } });
       const out = base64ToArrayBuffer(res.base64);
       setProcessedBuffer(out);
-      setStage("done");
+      setProgress(100);
+      setTimeout(() => setStage("done"), 300);
     } catch (e) {
       console.error(e);
       alert("Форматтоодо ката кетти.");
       setStage("payment");
+    } finally {
+      clearInterval(tick);
     }
   }
 
@@ -217,11 +227,14 @@ function OkUApp() {
               )}
 
               {stage === "processing" && (
-                <div className="flex flex-col items-center gap-3 py-6">
+                <div className="flex flex-col items-center gap-4 py-6">
                   <Sparkles className="h-10 w-10 animate-pulse text-primary" />
-                  <p className="font-medium">Документ форматталууда…</p>
-                  <p className="text-sm text-muted-foreground">
-                    Талаалар, нумерация жана бөлүмдөр коюлууда
+                  <p className="text-center font-medium">
+                    Беттер KTMU стандарты боюнча форматталууда…
+                  </p>
+                  <Progress value={progress} className="w-full" />
+                  <p className="text-xs text-muted-foreground">
+                    Бөлүмдөр · нумерация (i, ii… → 1, 2, 3) · талаалар · колонтитул
                   </p>
                 </div>
               )}
