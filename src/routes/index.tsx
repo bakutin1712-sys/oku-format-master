@@ -49,6 +49,7 @@ function OkUApp() {
   const [processedBuffer, setProcessedBuffer] = useState<ArrayBuffer | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [formattingWarning, setFormattingWarning] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const formatFn = useServerFn(formatDocxKtmu);
 
@@ -105,6 +106,7 @@ function OkUApp() {
     }, 220);
     try {
       const res = await formatFn({ data: { base64 } });
+      setFormattingWarning(res.warning ?? null);
       const out = base64ToArrayBuffer(res.base64);
       setProcessedBuffer(out);
       setProgress(100);
@@ -131,6 +133,7 @@ function OkUApp() {
     setOriginalBuffer(null);
     setProcessedBuffer(null);
     setOrderId(null);
+    setFormattingWarning(null);
     setStage("upload");
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -236,6 +239,11 @@ function OkUApp() {
                   <p className="text-xs text-muted-foreground">
                     Бөлүмдөр · нумерация (i, ii… → 1, 2, 3) · талаалар · колонтитул
                   </p>
+                  {formattingWarning && (
+                    <p className="text-center text-xs font-medium text-destructive">
+                      {formattingWarning}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -246,6 +254,11 @@ function OkUApp() {
                     <h2 className="text-lg font-bold">Даяр!</h2>
                   </div>
                   <div className="space-y-2">
+                    {formattingWarning && (
+                      <p className="rounded-lg border bg-secondary/40 p-3 text-xs font-medium text-destructive">
+                        {formattingWarning}
+                      </p>
+                    )}
                     <Button
                       className="w-full"
                       onClick={() =>
