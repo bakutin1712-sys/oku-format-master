@@ -137,23 +137,21 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): KtmuFormat
 
   type Break = { paraIdx: number; kind: SectionKind };
   const breaks: Break[] = [];
-  let romanFound = false;
-  let arabicFound = false;
   let warning: string | undefined;
-  paragraphs.forEach((p, i) => {
-    if (!romanFound && matchesTrigger(p.text, ROMAN_TRIGGER)) {
-      breaks.push({ paraIdx: i, kind: "roman" });
-      romanFound = true;
-    } else if (!arabicFound && (romanFound || breaks.length === 0) && matchesTrigger(p.text, ARABIC_TRIGGER)) {
-      breaks.push({ paraIdx: i, kind: "arabic" });
-      arabicFound = true;
-    }
-  });
 
-  if (!romanFound && !arabicFound) {
+  const romanStart = paragraphs.findIndex((p) => matchesTrigger(p.text, ROMAN_TRIGGER));
+  const arabicStart =
+    romanStart >= 0
+      ? paragraphs.findIndex((p, i) => i > romanStart && matchesTrigger(p.text, ARABIC_TRIGGER))
+      : -1;
+
+  if (romanStart >= 0) breaks.push({ paraIdx: romanStart, kind: "roman" });
+  if (arabicStart >= 0) breaks.push({ paraIdx: arabicStart, kind: "arabic" });
+
+  if (romanStart < 0) {
     breaks.push({ paraIdx: getThirdPageStartParagraph(paragraphs), kind: "arabic" });
     warning = KEYWORDS_NOT_DETECTED_WARNING;
-  } else if (!romanFound || !arabicFound) {
+  } else if (arabicStart < 0) {
     warning = KEYWORDS_NOT_DETECTED_WARNING;
   }
 
