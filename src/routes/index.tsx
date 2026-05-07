@@ -97,16 +97,24 @@ function OkUApp() {
   async function runProcessing() {
     if (!originalBuffer) return;
     setStage("processing");
+    setProgress(8);
     const base64 = arrayBufferToBase64(originalBuffer);
+    // Smooth fake progress while server is patching XML
+    const tick = setInterval(() => {
+      setProgress((p) => (p < 88 ? p + Math.random() * 6 : p));
+    }, 220);
     try {
       const res = await formatFn({ data: { base64 } });
       const out = base64ToArrayBuffer(res.base64);
       setProcessedBuffer(out);
-      setStage("done");
+      setProgress(100);
+      setTimeout(() => setStage("done"), 300);
     } catch (e) {
       console.error(e);
       alert("Форматтоодо ката кетти.");
       setStage("payment");
+    } finally {
+      clearInterval(tick);
     }
   }
 
