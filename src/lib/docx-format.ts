@@ -2,6 +2,7 @@
 // (no numbering / lower-roman / decimal) and injects a centered footer
 // with a PAGE field rendered in 12pt Times New Roman.
 import PizZip from "pizzip";
+import { NumberFormat, SectionType } from "docx";
 import { KTMU, cmToTwips } from "./ktmu-constants";
 
 type SectionKind = "none" | "roman" | "arabic";
@@ -53,13 +54,13 @@ const SECT_PR = (kind: SectionKind) => {
   let pgNumType = "";
   let footerRef = "";
   if (kind === "roman") {
-    pgNumType = `<w:pgNumType w:fmt="lowerRoman" w:start="1"/>`;
+    pgNumType = `<w:pgNumType w:fmt="${NumberFormat.LOWER_ROMAN}" w:start="1"/>`;
     footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.roman}"/>`;
   } else if (kind === "arabic") {
-    pgNumType = `<w:pgNumType w:fmt="decimal" w:start="1"/>`;
+    pgNumType = `<w:pgNumType w:fmt="${NumberFormat.DECIMAL}" w:start="1"/>`;
     footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.arabic}"/>`;
   }
-  return `<w:sectPr>${footerRef}<w:type w:val="nextPage"/><w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="708" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
+  return `<w:sectPr>${footerRef}<w:type w:val="${SectionType.NEXT_PAGE}"/><w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="708" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
 };
 
 const normalizeForSearch = (text: string) => text.normalize("NFC").toLocaleUpperCase("tr-TR");
@@ -102,7 +103,7 @@ function ensureContentType(ctXml: string, partName: string): string {
   return ctXml.replace(/<\/Types>/, `${override}</Types>`);
 }
 
-export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): Uint8Array {
+export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): KtmuFormattingResult {
   const zip = new PizZip(input);
   const docFile = zip.file("word/document.xml");
   if (!docFile) throw new Error("Invalid .docx: word/document.xml not found");
