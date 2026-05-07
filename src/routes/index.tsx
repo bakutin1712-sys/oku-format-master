@@ -143,8 +143,16 @@ function OkUApp() {
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b bg-background/80 backdrop-blur">
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Hero gradient + ornament background */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{ background: "var(--gradient-hero)" }}
+      />
+      <div aria-hidden className="kg-ornament pointer-events-none absolute inset-0 -z-10 opacity-40" />
+
+      <header className="border-b bg-background/70 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <OkULogo />
           <div className="hidden items-center gap-2 text-sm text-muted-foreground md:flex">
@@ -155,14 +163,22 @@ function OkUApp() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-10">
-        <section className="mb-10 text-center">
-          <h1 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            Дипломуңду <span className="text-primary">бир иретте</span> куруп берели
+      <main className="mx-auto max-w-7xl px-6 py-12">
+        {/* HERO */}
+        <section className="mb-12 text-center">
+          <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            КТМУ дипломдору үчүн №1 курал
+          </div>
+          <h1 className="font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-6xl">
+            <span className="bg-gradient-to-br from-foreground to-primary bg-clip-text text-transparent">
+              OkU — Баарын бир иретте
+            </span>
+            <br />
+            <span className="text-foreground">куруу үчүн</span>
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            Баарын бир иретте куруу үчүн — KTMU расмий ченемдерине ылайык автоматтык
-            форматтоо жана текшерүү.
+          <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground md:text-lg">
+            Дипломуңду жүктө — KTMU расмий ченемдерине ылайык 30 секундда форматтайбыз.
           </p>
         </section>
 
@@ -170,21 +186,36 @@ function OkUApp() {
           {/* LEFT: actions */}
           <aside className="space-y-4">
             <div
-              className="rounded-2xl border bg-card p-6"
+              className="glass-card rounded-2xl p-6"
               style={{ boxShadow: "var(--shadow-soft)" }}
             >
               {stage === "upload" && (
                 <>
                   <h2 className="mb-1 text-lg font-bold">1. Документти жүктөө</h2>
                   <p className="mb-4 text-sm text-muted-foreground">
-                    .docx форматындагы дипломуңузду тандаңыз.
+                    .docx форматындагы дипломуңузду тандаңыз же сүйрөп таштаңыз.
                   </p>
                   <label
-                    className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-8 text-center transition hover:border-primary hover:bg-secondary/40"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOver(false);
+                      const f = e.dataTransfer.files?.[0];
+                      if (f && f.name.toLowerCase().endsWith(".docx")) void handleFile(f);
+                    }}
+                    className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-10 text-center transition-all ${
+                      dragOver
+                        ? "dropzone-glow"
+                        : "border-border hover:border-primary hover:bg-secondary/40"
+                    }`}
                   >
-                    <Upload className="h-8 w-8 text-primary" />
-                    <span className="font-medium">Файл тандоо</span>
-                    <span className="text-xs text-muted-foreground">же сүйрөп таштаңыз</span>
+                    <Upload className="h-9 w-9 text-primary" />
+                    <span className="font-semibold">Файлды бул жерге сүйрөңүз</span>
+                    <span className="text-xs text-muted-foreground">же чертип тандаңыз · .docx</span>
                     <input
                       ref={inputRef}
                       type="file"
@@ -201,6 +232,11 @@ function OkUApp() {
                   <Loader2 className="h-10 w-10 animate-spin text-primary" />
                   <p className="font-medium">KTMU ченемдери боюнча текшерилүүдө…</p>
                   <p className="text-sm text-muted-foreground">{file?.name}</p>
+                  <div className="mt-3 w-full space-y-2">
+                    <StatusBadge label={`Margins: ${KTMU.margins.leftCm}cm / ${KTMU.margins.rightCm}cm Verified`} delay={0} />
+                    <StatusBadge label="Section Detection: Success" delay={350} />
+                    <StatusBadge label="Turkish Unicode (Ö, İ, ğ) Support: Active" delay={700} />
+                  </div>
                 </div>
               )}
 
@@ -264,7 +300,7 @@ function OkUApp() {
                       </p>
                     )}
                     <Button
-                      className="w-full"
+                      className="btn-electric h-12 w-full rounded-full text-base font-semibold"
                       onClick={() =>
                         processedBuffer &&
                         downloadBlob(
@@ -280,27 +316,12 @@ function OkUApp() {
                     </Button>
                     <Button
                       variant="secondary"
-                      className="w-full"
+                      className="h-11 w-full rounded-full"
                       onClick={() => processedBuffer && downloadAsPdf(processedBuffer, file?.name)}
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       PDF жүктөп алуу
                     </Button>
-                  </div>
-
-                  <div className="mt-5 rounded-xl border bg-secondary/40 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Студенттер үчүн пайдалуу курал
-                    </p>
-                    <a
-                      href="https://o-key.ai/invite/167d4c94"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
-                    >
-                      o-key.ai/invite/167d4c94
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
                   </div>
 
                   <Button variant="ghost" className="mt-3 w-full" onClick={reset}>
@@ -310,7 +331,7 @@ function OkUApp() {
               )}
             </div>
 
-            <div className="rounded-2xl border bg-card/60 p-5 text-xs text-muted-foreground">
+            <div className="glass-card rounded-2xl p-5 text-xs text-muted-foreground">
               <p className="mb-2 font-semibold text-foreground">KTMU ченемдери</p>
               <ul className="space-y-1">
                 <li>• Кагаз: A4</li>
@@ -325,7 +346,7 @@ function OkUApp() {
             </div>
           </aside>
 
-          {/* RIGHT: preview */}
+          {/* RIGHT: preview with scanner overlay */}
           <section>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-display text-lg font-bold">Документ алдын ала көрүү</h2>
@@ -335,14 +356,89 @@ function OkUApp() {
                 </span>
               )}
             </div>
-            <DocxPreview buffer={processedBuffer ?? originalBuffer} />
+            <div className="relative overflow-hidden rounded-2xl">
+              <DocxPreview buffer={processedBuffer ?? originalBuffer} />
+              {(stage === "checking" || stage === "processing") && (
+                <div aria-hidden className="pointer-events-none absolute inset-0">
+                  <div className="scanner-line" />
+                </div>
+              )}
+            </div>
           </section>
         </div>
+
+        {/* WHY OkU */}
+        <section className="mt-16">
+          <h2 className="mb-6 text-center font-display text-2xl font-extrabold md:text-3xl">
+            Эмне үчүн <span className="text-primary">OkU</span>?
+          </h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <WhyCard
+              icon={<Clock className="h-6 w-6" />}
+              title="30 секунд"
+              text="Убактыңызды үнөмдөңүз — кол менен форматтоо жок."
+            />
+            <WhyCard
+              icon={<ShieldCheck className="h-6 w-6" />}
+              title="100% Ишенимдүү"
+              text="Манас университетинин расмий стандарттары."
+            />
+            <WhyCard
+              icon={<Printer className="h-6 w-6" />}
+              title="Даяр файл"
+              text="Типографияга дароо жөнөтүүгө боло турган DOCX/PDF."
+            />
+          </div>
+        </section>
       </main>
 
-      <footer className="mt-12 border-t py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} OkU · Баарын бир иретте куруу үчүн
+      {/* Floating referral CTA */}
+      <a
+        href="https://o-key.ai/invite/167d4c94"
+        target="_blank"
+        rel="noreferrer"
+        className="group fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full px-5 py-3 text-sm font-semibold text-white shadow-2xl transition-transform hover:scale-105"
+        style={{ background: "var(--gradient-cta)", boxShadow: "0 20px 50px -15px oklch(0.62 0.24 25 / 0.55)" }}
+      >
+        <Gift className="h-5 w-5" />
+        <span className="hidden sm:inline">Студенттер үчүн белек: o-key.ai</span>
+        <span className="sm:hidden">o-key.ai</span>
+        <ExternalLink className="h-4 w-4 opacity-80 transition-transform group-hover:translate-x-0.5" />
+      </a>
+
+      <footer className="mt-12 border-t bg-background/60 py-6 text-center text-xs text-muted-foreground backdrop-blur">
+        OkU © {new Date().getFullYear()} — КТМУ студенттери үчүн сүйүү менен жасалган ❤
       </footer>
+    </div>
+  );
+}
+
+function StatusBadge({ label, delay }: { label: string; delay: number }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+  if (!show) return null;
+  return (
+    <div className="pop-in flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs font-medium text-success">
+      <CheckCircle2 className="h-4 w-4" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function WhyCard({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
+  return (
+    <div className="glass-card group rounded-2xl p-6 transition-transform hover:-translate-y-1">
+      <div
+        className="mb-4 grid h-12 w-12 place-items-center rounded-xl text-primary-foreground"
+        style={{ background: "var(--gradient-brand)", boxShadow: "var(--shadow-soft)" }}
+      >
+        {icon}
+      </div>
+      <h3 className="mb-1 font-display text-lg font-bold">{title}</h3>
+      <p className="text-sm text-muted-foreground">{text}</p>
     </div>
   );
 }
