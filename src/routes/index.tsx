@@ -227,11 +227,14 @@ function OkUApp() {
               )}
 
               {stage === "processing" && (
-                <div className="flex flex-col items-center gap-3 py-6">
+                <div className="flex flex-col items-center gap-4 py-6">
                   <Sparkles className="h-10 w-10 animate-pulse text-primary" />
-                  <p className="font-medium">Документ форматталууда…</p>
-                  <p className="text-sm text-muted-foreground">
-                    Талаалар, нумерация жана бөлүмдөр коюлууда
+                  <p className="text-center font-medium">
+                    Беттер KTMU стандарты боюнча форматталууда…
+                  </p>
+                  <Progress value={progress} className="w-full" />
+                  <p className="text-xs text-muted-foreground">
+                    Бөлүмдөр · нумерация (i, ii… → 1, 2, 3) · талаалар · колонтитул
                   </p>
                 </div>
               )}
