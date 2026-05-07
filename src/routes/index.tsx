@@ -53,6 +53,7 @@ function OkUApp() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [formattingWarning, setFormattingWarning] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const formatFn = useServerFn(formatDocxKtmu);
 
