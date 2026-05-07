@@ -48,6 +48,7 @@ function OkUApp() {
   const [originalBuffer, setOriginalBuffer] = useState<ArrayBuffer | null>(null);
   const [processedBuffer, setProcessedBuffer] = useState<ArrayBuffer | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const formatFn = useServerFn(formatDocxKtmu);
 
