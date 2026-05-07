@@ -95,10 +95,16 @@
 }
 .scanner-line {
   position: absolute; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, transparent, oklch(0.55 0.2 265 / 0.95), transparent);
-  box-shadow: 0 0 24px 4px oklch(0.55 0.2 265 / 0.6);
+  background: linear-gradient(90deg, transparent, oklch(0.78 0.16 200 / 0.95), transparent);
+  box-shadow: 0 0 24px 4px oklch(0.78 0.16 200 / 0.6);
   animation: scanline 2.4s ease-in-out infinite;
 }
+
+@keyframes pdf-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.78 0.16 200 / 0.55), var(--shadow-soft); }
+  50% { box-shadow: 0 0 0 8px oklch(0.78 0.16 200 / 0), 0 0 30px 4px oklch(0.78 0.16 200 / 0.6); }
+}
+.pdf-glow { animation: pdf-glow 2s ease-in-out infinite; border-color: oklch(0.78 0.16 200) !important; }
 
 .dropzone-glow { box-shadow: var(--shadow-glow); border-color: var(--primary) !important; background: color-mix(in oklab, var(--primary) 6%, var(--card)); }
 

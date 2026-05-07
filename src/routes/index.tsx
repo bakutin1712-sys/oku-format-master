@@ -316,8 +316,8 @@ function OkUApp() {
                       DOCX жүктөп алуу
                     </Button>
                     <Button
-                      variant="secondary"
-                      className="h-11 w-full rounded-full"
+                      variant="outline"
+                      className="pdf-glow h-11 w-full rounded-full"
                       onClick={() => processedBuffer && downloadAsPdf(processedBuffer, file?.name)}
                     >
                       <FileText className="mr-2 h-4 w-4" />
@@ -407,8 +407,11 @@ function OkUApp() {
         <ExternalLink className="h-4 w-4 opacity-80 transition-transform group-hover:translate-x-0.5" />
       </a>
 
-      <footer className="mt-12 border-t bg-background/60 py-6 text-center text-xs text-muted-foreground backdrop-blur">
-        OkU © {new Date().getFullYear()} — КТМУ студенттери үчүн сүйүү менен жасалган ❤
+      <footer className="mt-12 border-t bg-background/60 py-8 text-center text-xs text-muted-foreground backdrop-blur">
+        <p className="mb-2 font-display text-sm italic text-foreground/80">
+          «Билим алуу — ийне менен кудук казгандай.»
+        </p>
+        <p>OkU © {new Date().getFullYear()} — КТМУ студенттери үчүн сүйүү менен жасалган ❤</p>
       </footer>
     </div>
   );
