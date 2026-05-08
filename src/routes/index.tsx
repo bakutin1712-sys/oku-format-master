@@ -20,7 +20,11 @@ import {
   Clock,
   Printer,
   Lock,
+  Gift,
+  Copy,
+  Check,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
