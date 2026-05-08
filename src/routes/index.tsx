@@ -362,23 +362,6 @@ function OkUApp() {
           </ul>
         </div>
 
-        <section className="mt-12 grid gap-4 md:grid-cols-3">
-          <WhyCard
-            icon={<Clock className="h-6 w-6" />}
-            title="30 секунд"
-            text="Кол менен форматтоо жок — убакытты үнөмдө."
-          />
-          <WhyCard
-            icon={<ShieldCheck className="h-6 w-6" />}
-            title="100% ишенимдүү"
-            text="КТМУ университетинин расмий стандарттары."
-          />
-          <WhyCard
-            icon={<Printer className="h-6 w-6" />}
-            title="Даяр DOCX"
-            text="Кафедрага дароо тапшырууга боло турган файл."
-          />
-        </section>
       </main>
 
       <footer className="mt-12 border-t bg-background/60 py-8 text-center text-xs text-muted-foreground backdrop-blur">
