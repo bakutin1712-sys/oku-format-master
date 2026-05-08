@@ -20,7 +20,11 @@ import {
   Clock,
   Printer,
   Lock,
+  Gift,
+  Copy,
+  Check,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -177,6 +181,28 @@ function OkUApp() {
             Дипломдук ишти жүктөп, <b>BakayBank</b> аркылуу төлөм кылыңыз жана даяр файлды алыңыз.
           </p>
         </section>
+
+        {/* Why-OkU 3-card info block (placed ABOVE upload per spec) */}
+        <section className="mb-8 grid gap-4 md:grid-cols-3">
+          <WhyCard
+            icon={<Clock className="h-6 w-6" />}
+            title="30 секунд"
+            text="Кол менен форматтоо жок — убакытты үнөмдө."
+          />
+          <WhyCard
+            icon={<ShieldCheck className="h-6 w-6" />}
+            title="100% ишенимдүү"
+            text="КТМУ университетинин расмий стандарттары."
+          />
+          <WhyCard
+            icon={<Printer className="h-6 w-6" />}
+            title="Даяр DOCX"
+            text="Кафедрага дароо тапшырууга боло турган файл."
+          />
+        </section>
+
+        {/* Referral "Power" block — strictly between 3-card info and upload */}
+        <ReferralBlock />
 
         <div
           className="glass-card rounded-2xl p-6 md:p-8"
@@ -336,23 +362,6 @@ function OkUApp() {
           </ul>
         </div>
 
-        <section className="mt-12 grid gap-4 md:grid-cols-3">
-          <WhyCard
-            icon={<Clock className="h-6 w-6" />}
-            title="30 секунд"
-            text="Кол менен форматтоо жок — убакытты үнөмдө."
-          />
-          <WhyCard
-            icon={<ShieldCheck className="h-6 w-6" />}
-            title="100% ишенимдүү"
-            text="КТМУ университетинин расмий стандарттары."
-          />
-          <WhyCard
-            icon={<Printer className="h-6 w-6" />}
-            title="Даяр DOCX"
-            text="Кафедрага дароо тапшырууга боло турган файл."
-          />
-        </section>
       </main>
 
       <footer className="mt-12 border-t bg-background/60 py-8 text-center text-xs text-muted-foreground backdrop-blur">
@@ -377,6 +386,68 @@ function StatusBadge({ label, delay }: { label: string; delay: number }) {
       <CheckCircle2 className="h-4 w-4" />
       <span>{label}</span>
     </div>
+  );
+}
+
+function ReferralBlock() {
+  const inviteUrl = "https://o-key.ai/invite/167d4c94";
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      toast.success("Шилтеме көчүрүлдү!", {
+        description: "Досторуң менен бөлүш жана бонус ал 🎁",
+      });
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      toast.error("Көчүрүү ишке ашпады");
+    }
+  }
+
+  return (
+    <section aria-label="Referral" className="mb-8">
+      <div className="neon-card p-5 md:p-6">
+        <div className="flex flex-col items-stretch gap-4 md:flex-row md:items-center">
+          <div
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.78 0.18 195), oklch(0.85 0.18 95))",
+              boxShadow: "0 0 20px oklch(0.78 0.18 195 / 0.6)",
+            }}
+            aria-hidden
+          >
+            <Gift className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-display text-base font-extrabold tracking-tight md:text-lg">
+              Досторуң менен бөлүш жана бонус ал!
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground md:text-sm">
+              Arkadaşlarınla paylaş ve bonus kazan · BAK-AI invite link
+            </p>
+            <div className="mt-2 truncate rounded-md border bg-background/60 px-3 py-1.5 font-mono text-xs text-foreground/80">
+              {inviteUrl}
+            </div>
+          </div>
+          <Button
+            onClick={copyLink}
+            className="btn-electric h-11 shrink-0 rounded-full px-5 text-sm font-semibold"
+          >
+            {copied ? (
+              <>
+                <Check className="mr-2 h-4 w-4" /> Көчүрүлдү
+              </>
+            ) : (
+              <>
+                <Copy className="mr-2 h-4 w-4" /> Шилтемени көчүрүү
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
 
