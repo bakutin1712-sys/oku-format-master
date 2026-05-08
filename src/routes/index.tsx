@@ -182,6 +182,28 @@ function OkUApp() {
           </p>
         </section>
 
+        {/* Why-OkU 3-card info block (placed ABOVE upload per spec) */}
+        <section className="mb-8 grid gap-4 md:grid-cols-3">
+          <WhyCard
+            icon={<Clock className="h-6 w-6" />}
+            title="30 секунд"
+            text="Кол менен форматтоо жок — убакытты үнөмдө."
+          />
+          <WhyCard
+            icon={<ShieldCheck className="h-6 w-6" />}
+            title="100% ишенимдүү"
+            text="КТМУ университетинин расмий стандарттары."
+          />
+          <WhyCard
+            icon={<Printer className="h-6 w-6" />}
+            title="Даяр DOCX"
+            text="Кафедрага дароо тапшырууга боло турган файл."
+          />
+        </section>
+
+        {/* Referral "Power" block — strictly between 3-card info and upload */}
+        <ReferralBlock />
+
         <div
           className="glass-card rounded-2xl p-6 md:p-8"
           style={{ boxShadow: "var(--shadow-soft)" }}
