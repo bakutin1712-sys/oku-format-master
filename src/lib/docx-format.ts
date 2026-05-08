@@ -29,6 +29,25 @@ const FOOTER_TARGETS: Record<Exclude<SectionKind, "none">, string> = {
   arabic: "footerOkUArabic.xml",
 };
 
+// Auto Table of Contents block (Times New Roman 12pt). Word renders dot
+// leaders and right-aligned page numbers from the TOC field on open / refresh.
+function buildTocXml(): string {
+  const tnrRpr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>`;
+  const tnrRprPlain = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>`;
+  return (
+    `<w:p><w:pPr><w:jc w:val="center"/></w:pPr>` +
+    `<w:r>${tnrRpr}<w:t xml:space="preserve">МАЗМУНУ / İÇİNDEKİLER</w:t></w:r></w:p>` +
+    `<w:p>` +
+    `<w:r>${tnrRprPlain}<w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r>` +
+    `<w:r>${tnrRprPlain}<w:instrText xml:space="preserve"> TOC \\o "1-3" \\h \\z \\u </w:instrText></w:r>` +
+    `<w:r>${tnrRprPlain}<w:fldChar w:fldCharType="separate"/></w:r>` +
+    `<w:r>${tnrRprPlain}<w:t>Mazmunduk таблицаны жаңылоо үчүн F9 басыңыз.</w:t></w:r>` +
+    `<w:r>${tnrRprPlain}<w:fldChar w:fldCharType="end"/></w:r>` +
+    `</w:p>` +
+    `<w:p><w:r><w:br w:type="page"/></w:r></w:p>`
+  );
+}
+
 function buildFooterXml(): string {
   // Centered PAGE field, 12pt Times New Roman.
   // pgNumType in sectPr controls the visual format (i/ii/iii vs 1/2/3).
