@@ -389,6 +389,68 @@ function StatusBadge({ label, delay }: { label: string; delay: number }) {
   );
 }
 
+function ReferralBlock() {
+  const inviteUrl = "https://o-key.ai/invite/167d4c94";
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      toast.success("Шилтеме көчүрүлдү!", {
+        description: "Досторуң менен бөлүш жана бонус ал 🎁",
+      });
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      toast.error("Көчүрүү ишке ашпады");
+    }
+  }
+
+  return (
+    <section aria-label="Referral" className="mb-8">
+      <div className="neon-card p-5 md:p-6">
+        <div className="flex flex-col items-stretch gap-4 md:flex-row md:items-center">
+          <div
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.78 0.18 195), oklch(0.85 0.18 95))",
+              boxShadow: "0 0 20px oklch(0.78 0.18 195 / 0.6)",
+            }}
+            aria-hidden
+          >
+            <Gift className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-display text-base font-extrabold tracking-tight md:text-lg">
+              Досторуң менен бөлүш жана бонус ал!
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground md:text-sm">
+              Arkadaşlarınla paylaş ve bonus kazan · BAK-AI invite link
+            </p>
+            <div className="mt-2 truncate rounded-md border bg-background/60 px-3 py-1.5 font-mono text-xs text-foreground/80">
+              {inviteUrl}
+            </div>
+          </div>
+          <Button
+            onClick={copyLink}
+            className="btn-electric h-11 shrink-0 rounded-full px-5 text-sm font-semibold"
+          >
+            {copied ? (
+              <>
+                <Check className="mr-2 h-4 w-4" /> Көчүрүлдү
+              </>
+            ) : (
+              <>
+                <Copy className="mr-2 h-4 w-4" /> Шилтемени көчүрүү
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function WhyCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
   return (
     <div className="glass-card group rounded-2xl p-6 transition-transform hover:-translate-y-1">
