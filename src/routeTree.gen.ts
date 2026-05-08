@@ -10,43 +10,44 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPublicWebhooksMbankRouteImport } from './routes/api/public/webhooks/mbank'
+import { Route as ApiPublicWebhooksBakaybankRouteImport } from './routes/api/public/webhooks/bakaybank'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicWebhooksMbankRoute = ApiPublicWebhooksMbankRouteImport.update({
-  id: '/api/public/webhooks/mbank',
-  path: '/api/public/webhooks/mbank',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiPublicWebhooksBakaybankRoute =
+  ApiPublicWebhooksBakaybankRouteImport.update({
+    id: '/api/public/webhooks/bakaybank',
+    path: '/api/public/webhooks/bakaybank',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/api/public/webhooks/mbank': typeof ApiPublicWebhooksMbankRoute
+  '/api/public/webhooks/bakaybank': typeof ApiPublicWebhooksBakaybankRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/api/public/webhooks/mbank': typeof ApiPublicWebhooksMbankRoute
+  '/api/public/webhooks/bakaybank': typeof ApiPublicWebhooksBakaybankRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/api/public/webhooks/mbank': typeof ApiPublicWebhooksMbankRoute
+  '/api/public/webhooks/bakaybank': typeof ApiPublicWebhooksBakaybankRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/webhooks/mbank'
+  fullPaths: '/' | '/api/public/webhooks/bakaybank'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/webhooks/mbank'
-  id: '__root__' | '/' | '/api/public/webhooks/mbank'
+  to: '/' | '/api/public/webhooks/bakaybank'
+  id: '__root__' | '/' | '/api/public/webhooks/bakaybank'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ApiPublicWebhooksMbankRoute: typeof ApiPublicWebhooksMbankRoute
+  ApiPublicWebhooksBakaybankRoute: typeof ApiPublicWebhooksBakaybankRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,11 +59,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/webhooks/mbank': {
-      id: '/api/public/webhooks/mbank'
-      path: '/api/public/webhooks/mbank'
-      fullPath: '/api/public/webhooks/mbank'
-      preLoaderRoute: typeof ApiPublicWebhooksMbankRouteImport
+    '/api/public/webhooks/bakaybank': {
+      id: '/api/public/webhooks/bakaybank'
+      path: '/api/public/webhooks/bakaybank'
+      fullPath: '/api/public/webhooks/bakaybank'
+      preLoaderRoute: typeof ApiPublicWebhooksBakaybankRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -70,7 +71,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ApiPublicWebhooksMbankRoute: ApiPublicWebhooksMbankRoute,
+  ApiPublicWebhooksBakaybankRoute: ApiPublicWebhooksBakaybankRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

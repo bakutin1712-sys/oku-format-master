@@ -2,14 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
-export const Route = createFileRoute("/api/public/webhooks/mbank")({
+// BakayBank payment webhook. Reuses MBANK_WEBHOOK_SECRET secret name
+// (kept stable to avoid re-prompting the user for a new secret).
+export const Route = createFileRoute("/api/public/webhooks/bakaybank")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const secret = process.env.MBANK_WEBHOOK_SECRET;
         if (!secret) return new Response("Server misconfigured", { status: 500 });
 
-        const signature = request.headers.get("x-mbank-signature") || "";
+        const signature = request.headers.get("x-bakaybank-signature") || "";
         const body = await request.text();
         const expected = createHmac("sha256", secret).update(body).digest("hex");
 
