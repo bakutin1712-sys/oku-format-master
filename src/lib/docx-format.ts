@@ -167,12 +167,20 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): KtmuFormat
 
   const newParagraphs = paragraphs.map((p, i) => {
     const kind = injectAtLastPara.get(i);
-    if (!kind) return p.xml;
-    const sectPr = SECT_PR(kind);
-    if (/<w:pPr>[\s\S]*?<\/w:pPr>/.test(p.xml)) {
-      return p.xml.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/, `<w:pPr>$1${sectPr}</w:pPr>`);
+    let xmlOut = p.xml;
+    if (kind) {
+      const sectPr = SECT_PR(kind);
+      if (/<w:pPr>[\s\S]*?<\/w:pPr>/.test(xmlOut)) {
+        xmlOut = xmlOut.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/, `<w:pPr>$1${sectPr}</w:pPr>`);
+      } else {
+        xmlOut = xmlOut.replace(/<w:p(\b[^>]*)>/, `<w:p$1><w:pPr>${sectPr}</w:pPr>`);
+      }
     }
-    return p.xml.replace(/<w:p(\b[^>]*)>/, `<w:p$1><w:pPr>${sectPr}</w:pPr>`);
+    // Inject auto-TOC right BEFORE the Arabic section start (i.e. after Önsöz/Abstract pages).
+    if (arabicStart >= 0 && i === arabicStart) {
+      return buildTocXml() + xmlOut;
+    }
+    return xmlOut;
   });
 
   const newBody = newParagraphs.join("") + SECT_PR(finalSectionKind);
