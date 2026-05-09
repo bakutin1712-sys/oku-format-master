@@ -16,17 +16,17 @@ const KEYWORDS_NOT_DETECTED_WARNING = "Keywords not detected, using default KTMU
 const ROMAN_TRIGGER = /(?:БАШ\s*СӨЗ|АЛГЫ\s*СӨЗ|ÖN\s*SÖZ|ON\s*SOZ|PREFACE)/iu;
 const ARABIC_TRIGGER = /(?:КЫСКАЧА\s*МАЗМУНУ|ÖZET|OZET|SUMMARY)/iu;
 
-const FOOTER_REL_IDS: Record<Exclude<SectionKind, "none">, string> = {
-  roman: "rIdOkUFooterRoman",
-  arabic: "rIdOkUFooterArabic",
+const PART_REL_IDS: Record<Exclude<SectionKind, "none">, string> = {
+  roman: "rIdOkUPartRoman",
+  arabic: "rIdOkUPartArabic",
 };
-const FOOTER_FILES: Record<Exclude<SectionKind, "none">, string> = {
-  roman: "word/footerOkURoman.xml",
-  arabic: "word/footerOkUArabic.xml",
+const PART_FILES: Record<Exclude<SectionKind, "none">, string> = {
+  roman: "word/okuPartRoman.xml",
+  arabic: "word/okuPartArabic.xml",
 };
-const FOOTER_TARGETS: Record<Exclude<SectionKind, "none">, string> = {
-  roman: "footerOkURoman.xml",
-  arabic: "footerOkUArabic.xml",
+const PART_TARGETS: Record<Exclude<SectionKind, "none">, string> = {
+  roman: "okuPartRoman.xml",
+  arabic: "okuPartArabic.xml",
 };
 
 // Auto Table of Contents block (Times New Roman 12pt). Word renders dot
@@ -48,39 +48,48 @@ function buildTocXml(): string {
   );
 }
 
-function buildFooterXml(): string {
-  // Centered PAGE field, 12pt Times New Roman.
-  // pgNumType in sectPr controls the visual format (i/ii/iii vs 1/2/3).
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+// Page-number part. For "bottom-center" we emit a footer (centered);
+// for "top-right" we emit a header (right-aligned).
+function buildPageNumPart(position: "bottom-center" | "top-right"): {
+  rootTag: "w:ftr" | "w:hdr";
+  xml: string;
+} {
+  const rootTag = position === "top-right" ? "w:hdr" : "w:ftr";
+  const align = position === "top-right" ? "right" : "center";
+  const tnr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>`;
+  const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<${rootTag} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:p>
-    <w:pPr>
-      <w:jc w:val="center"/>
-      <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>
-    </w:pPr>
-    <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r>
-    <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:instrText xml:space="preserve"> PAGE   \\* MERGEFORMAT </w:instrText></w:r>
-    <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>
+    <w:pPr><w:jc w:val="${align}"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr>
+    <w:r>${tnr}<w:fldChar w:fldCharType="begin"/></w:r>
+    <w:r>${tnr}<w:instrText xml:space="preserve"> PAGE   \\* MERGEFORMAT </w:instrText></w:r>
+    <w:r>${tnr}<w:fldChar w:fldCharType="end"/></w:r>
   </w:p>
-</w:ftr>`;
+</${rootTag}>`;
+  return { rootTag, xml };
 }
 
-const SECT_PR = (kind: SectionKind) => {
-  const left = cmToTwips(KTMU.margins.leftCm);
-  const right = cmToTwips(KTMU.margins.rightCm);
-  const top = cmToTwips(KTMU.margins.topCm);
-  const bottom = cmToTwips(KTMU.margins.bottomCm);
+function buildSectPr(kind: SectionKind, faculty: Faculty): string {
+  const rules = FACULTY_RULES[faculty];
+  const left = cmToTwips(rules.margins.leftCm);
+  const right = cmToTwips(rules.margins.rightCm);
+  const top = cmToTwips(rules.margins.topCm);
+  const bottom = cmToTwips(rules.margins.bottomCm);
+  // Tourism: page number 2.5 cm from top edge.
+  const headerTwips = rules.pageNumber === "top-right" ? cmToTwips(2.5) : 708;
   let pgNumType = "";
-  let footerRef = "";
+  let partRef = "";
   if (kind === "roman") {
     pgNumType = `<w:pgNumType w:fmt="${NumberFormat.LOWER_ROMAN}" w:start="1"/>`;
-    footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.roman}"/>`;
+    const refTag = rules.pageNumber === "top-right" ? "headerReference" : "footerReference";
+    partRef = `<w:${refTag} w:type="default" r:id="${PART_REL_IDS.roman}"/>`;
   } else if (kind === "arabic") {
     pgNumType = `<w:pgNumType w:fmt="${NumberFormat.DECIMAL}" w:start="1"/>`;
-    footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.arabic}"/>`;
+    const refTag = rules.pageNumber === "top-right" ? "headerReference" : "footerReference";
+    partRef = `<w:${refTag} w:type="default" r:id="${PART_REL_IDS.arabic}"/>`;
   }
-  return `<w:sectPr>${footerRef}<w:type w:val="${SectionType.NEXT_PAGE}"/><w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="708" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
-};
+  return `<w:sectPr>${partRef}<w:type w:val="${SectionType.NEXT_PAGE}"/><w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="${headerTwips}" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
+}
 
 const normalizeForSearch = (text: string) => text.normalize("NFC").toLocaleUpperCase("tr-TR");
 
