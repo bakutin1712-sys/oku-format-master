@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { OkULogo } from "@/components/OkULogo";
 import { formatDocxKtmu } from "@/lib/docx.functions";
-import { KTMU } from "@/lib/ktmu-constants";
-import bakayQr from "@/assets/mbank-qr.png";
+import { KTMU, FACULTY_RULES, type Faculty } from "@/lib/ktmu-constants";
+import { I18N, LANGS, type Lang, t } from "@/lib/i18n";
+import bakAiImg from "@/assets/bak-ai.jpg";
 import {
   Upload,
   Loader2,
@@ -23,6 +24,7 @@ import {
   Gift,
   Copy,
   Check,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,6 +50,8 @@ export const Route = createFileRoute("/")({
 type Stage = "upload" | "checking" | "payment" | "processing" | "done";
 
 function OkUApp() {
+  const [lang, setLang] = useState<Lang>("kg");
+  const [faculty, setFaculty] = useState<Faculty>("general");
   const [stage, setStage] = useState<Stage>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [originalBuffer, setOriginalBuffer] = useState<ArrayBuffer | null>(null);
@@ -59,8 +63,8 @@ function OkUApp() {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const formatFn = useServerFn(formatDocxKtmu);
+  const tr = (k: keyof typeof I18N["kg"]) => t(lang, k);
 
-  // Realtime: listen for BakayBank webhook flipping order to 'paid'
   useEffect(() => {
     if (!orderId) return;
     const channel = supabase
@@ -112,7 +116,7 @@ function OkUApp() {
       setProgress((p) => (p < 88 ? p + Math.random() * 6 : p));
     }, 220);
     try {
-      const res = await formatFn({ data: { base64 } });
+      const res = await formatFn({ data: { base64, faculty } });
       setFormattingWarning(res.warning ?? null);
       const out = base64ToArrayBuffer(res.base64);
       setProcessedBuffer(out);
@@ -128,7 +132,6 @@ function OkUApp() {
   }
 
   function simulatePayment() {
-    // DEV only — production: BakayBank webhook flips status to 'paid'.
     setPaid(true);
     void runProcessing();
   }
@@ -145,6 +148,7 @@ function OkUApp() {
   }
 
   const downloadEnabled = paid && stage === "done" && !!processedBuffer;
+  const rules = FACULTY_RULES[faculty];
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -156,12 +160,14 @@ function OkUApp() {
       <div aria-hidden className="kg-ornament pointer-events-none absolute inset-0 -z-10 opacity-40" />
 
       <header className="border-b bg-background/70 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <OkULogo />
-          <div className="hidden items-center gap-2 text-sm text-muted-foreground md:flex">
-            <ShieldCheck className="h-4 w-4 text-success" />
-            KTMU стандарты · A4 · {KTMU.margins.leftCm}/{KTMU.margins.rightCm}/
-            {KTMU.margins.topCm}/{KTMU.margins.bottomCm} см
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 text-sm text-muted-foreground lg:flex">
+              <ShieldCheck className="h-4 w-4 text-success" />
+              {tr("standardChip")} · A4
+            </div>
+            <LangSwitcher lang={lang} onChange={setLang} />
           </div>
         </div>
       </header>
@@ -170,50 +176,46 @@ function OkUApp() {
         <section className="mb-10 text-center">
           <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            BAK-AI · КТМУ дипломдору үчүн №1 курал
+            {tr("badge")}
           </div>
           <h1 className="font-display text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl">
             <span className="bg-gradient-to-br from-foreground to-primary bg-clip-text text-transparent">
-              OkU — Баарын бир иретте
+              {tr("heroTitle")}
             </span>
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-            Дипломдук ишти жүктөп, <b>BakayBank</b> аркылуу төлөм кылыңыз жана даяр файлды алыңыз.
-          </p>
+          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">{tr("heroSub")}</p>
         </section>
 
-        {/* Why-OkU 3-card info block (placed ABOVE upload per spec) */}
-        <section className="mb-8 grid gap-4 md:grid-cols-3">
-          <WhyCard
-            icon={<Clock className="h-6 w-6" />}
-            title="30 секунд"
-            text="Кол менен форматтоо жок — убакытты үнөмдө."
-          />
-          <WhyCard
-            icon={<ShieldCheck className="h-6 w-6" />}
-            title="100% ишенимдүү"
-            text="КТМУ университетинин расмий стандарттары."
-          />
-          <WhyCard
-            icon={<Printer className="h-6 w-6" />}
-            title="Даяр DOCX"
-            text="Кафедрага дароо тапшырууга боло турган файл."
-          />
-        </section>
-
-        {/* Referral "Power" block — strictly between 3-card info and upload */}
-        <ReferralBlock />
-
+        {/* 1. Action block: upload + faculty */}
         <div
           className="glass-card rounded-2xl p-6 md:p-8"
           style={{ boxShadow: "var(--shadow-soft)" }}
         >
           {stage === "upload" && (
             <>
-              <h2 className="mb-1 text-lg font-bold">1. Документти жүктөө</h2>
-              <p className="mb-4 text-sm text-muted-foreground">
-                .docx форматындагы дипломуңузду тандаңыз же сүйрөп таштаңыз.
-              </p>
+              <h2 className="mb-1 text-lg font-bold">{tr("step1")}</h2>
+              <p className="mb-4 text-sm text-muted-foreground">{tr("step1Sub")}</p>
+
+              <div className="mb-4">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {tr("facultyLabel")}
+                </label>
+                <select
+                  value={faculty}
+                  onChange={(e) => setFaculty(e.target.value as Faculty)}
+                  className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="general">{tr("facultyGeneral")}</option>
+                  <option value="tourism">{tr("facultyTourism")}</option>
+                </select>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {`${rules.margins.leftCm}/${rules.margins.rightCm}/${rules.margins.topCm}/${rules.margins.bottomCm} см · `}
+                  {rules.pageNumber === "top-right"
+                    ? "Бет номери: жогоруда оңдо"
+                    : "Бет номери: ылдыйда борбордо"}
+                </p>
+              </div>
+
               <label
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -233,8 +235,8 @@ function OkUApp() {
                 }`}
               >
                 <Upload className="h-10 w-10 text-primary" />
-                <span className="font-semibold">Файлды бул жерге сүйрөңүз</span>
-                <span className="text-xs text-muted-foreground">же чертип тандаңыз · .docx</span>
+                <span className="font-semibold">{tr("dropHere")}</span>
+                <span className="text-xs text-muted-foreground">{tr("orClick")}</span>
                 <input
                   ref={inputRef}
                   type="file"
@@ -249,39 +251,35 @@ function OkUApp() {
           {stage === "checking" && (
             <div className="flex flex-col items-center gap-3 py-8">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="font-medium">Документ KTMU ченемдери боюнча текшерилүүдө…</p>
+              <p className="font-medium">{tr("checking")}</p>
               <p className="text-sm text-muted-foreground">{file?.name}</p>
-              <div className="mt-3 w-full max-w-sm space-y-2">
-                <StatusBadge label={`Талаалар: ${KTMU.margins.leftCm}/${KTMU.margins.rightCm} см — текшерилди`} delay={0} />
-                <StatusBadge label="Бөлүмдөр аныкталды" delay={350} />
-                <StatusBadge label="Türkçe Unicode (Ö, İ, ğ) колдоосу: активдүү" delay={700} />
-              </div>
             </div>
           )}
 
           {stage === "payment" && (
             <>
-              <h2 className="mb-1 text-lg font-bold">2. BakayBank аркылуу төлөм</h2>
-              <p className="mb-4 text-sm text-muted-foreground">
-                BakayBank QR-кодду сканерлеп, <b>555 сом</b> төлөңүз. Төлөм келээри менен
-                форматтоо автоматтык башталат.
-              </p>
+              <h2 className="mb-1 text-lg font-bold">{tr("payTitle")}</h2>
+              <p className="mb-4 text-sm text-muted-foreground">{tr("paySub")}</p>
               <div className="flex flex-col items-center gap-3 rounded-xl border bg-background p-5">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
                   <CreditCard className="h-4 w-4" /> BakayBank
                 </div>
                 <img
-                  src={bakayQr}
-                  alt="BakayBank QR код"
-                  className="h-56 w-56 rounded-lg object-contain"
+                  src={bakAiImg}
+                  alt="BakayBank · BAK-AI"
+                  width={224}
+                  height={224}
+                  loading="lazy"
+                  className="h-56 w-56 rounded-xl object-cover"
+                  style={{ boxShadow: "var(--shadow-soft)" }}
                 />
                 <div className="text-center text-sm">
                   <div className="text-xl font-bold">555 KGS</div>
-                  <div className="text-muted-foreground">бир документ үчүн</div>
+                  <div className="text-muted-foreground">BakayBank · BAK-AI</div>
                 </div>
               </div>
               <Button variant="outline" className="mt-4 w-full" onClick={simulatePayment}>
-                DEV: BakayBank төлөмүн ийгиликтүү деп симуляциялоо
+                {tr("devSim")}
               </Button>
             </>
           )}
@@ -289,13 +287,8 @@ function OkUApp() {
           {stage === "processing" && (
             <div className="flex flex-col items-center gap-4 py-8">
               <Sparkles className="h-10 w-10 animate-pulse text-primary" />
-              <p className="text-center font-medium">
-                Документ КТМУ стандарттарына ылайык иретке келтирилип жатат…
-              </p>
+              <p className="text-center font-medium">{tr("processing")}</p>
               <Progress value={progress} className="w-full max-w-md" />
-              <p className="text-center text-xs text-muted-foreground">
-                Бөлүмдөр · нумерация (i, ii… → 1, 2, 3) · талаалар · мазмун · колонтитул
-              </p>
               {formattingWarning && (
                 <p className="text-center text-xs font-medium text-destructive">
                   {formattingWarning}
@@ -308,7 +301,7 @@ function OkUApp() {
             <>
               <div className="mb-4 flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
-                <h2 className="text-lg font-bold">Даяр! Документ форматталды.</h2>
+                <h2 className="text-lg font-bold">{tr("done")}</h2>
               </div>
               {formattingWarning && (
                 <p className="mb-3 rounded-lg border bg-secondary/40 p-3 text-xs font-medium text-destructive">
@@ -331,37 +324,64 @@ function OkUApp() {
                 {downloadEnabled ? (
                   <>
                     <Download className="mr-2 h-4 w-4" />
-                    Форматталган DOCX'ти жүктөп алуу
+                    {tr("download")}
                   </>
                 ) : (
                   <>
                     <Lock className="mr-2 h-4 w-4" />
-                    Төлөмдөн кийин жеткиликтүү
+                    {tr("locked")}
                   </>
                 )}
               </Button>
               <Button variant="ghost" className="mt-3 w-full" onClick={reset}>
-                Жаңы документ форматтоо
+                {tr("newDoc")}
               </Button>
             </>
           )}
         </div>
 
-        <div className="mt-6 glass-card rounded-2xl p-5 text-xs text-muted-foreground">
-          <p className="mb-2 font-semibold text-foreground">KTMU ченемдери</p>
-          <ul className="grid gap-1 md:grid-cols-2">
-            <li>• Кагаз: A4 · Times New Roman 12pt</li>
-            <li>
-              • Талаалар: сол {KTMU.margins.leftCm} см, оң {KTMU.margins.rightCm} см, үстү{" "}
-              {KTMU.margins.topCm} см, асты {KTMU.margins.bottomCm} см
-            </li>
-            <li>• Титул/бекитүү барактарында номер жок</li>
-            <li>• "БАШ СӨЗ" / "ÖN SÖZ" — i, ii, iii…</li>
-            <li>• "КЫСКАЧА МАЗМУНУ" / "ÖZET" — 1, 2, 3…</li>
-            <li>• Авто-мазмун: 1., 1.1., 1.1.1. деңгээлдер</li>
-          </ul>
+        {/* 2. Referral block (between action + benefit cards) */}
+        <div className="mt-8">
+          <ReferralBlock lang={lang} />
         </div>
 
+        {/* 3. Benefit cards (moved BELOW referral) */}
+        <section className="mt-8 grid gap-4 md:grid-cols-3">
+          <WhyCard
+            icon={<Clock className="h-6 w-6" />}
+            title={tr("fast")}
+            text={tr("fastDesc")}
+          />
+          <WhyCard
+            icon={<ShieldCheck className="h-6 w-6" />}
+            title={tr("accurate")}
+            text={tr("accurateDesc")}
+          />
+          <WhyCard
+            icon={<Printer className="h-6 w-6" />}
+            title={tr("print")}
+            text={tr("printDesc")}
+          />
+        </section>
+
+        <div className="mt-6 glass-card rounded-2xl p-5 text-xs text-muted-foreground">
+          <p className="mb-2 font-semibold text-foreground">KTMU · {rules.label}</p>
+          <ul className="grid gap-1 md:grid-cols-2">
+            <li>• A4 · Times New Roman 12pt</li>
+            <li>
+              • {`${rules.margins.leftCm}/${rules.margins.rightCm}/${rules.margins.topCm}/${rules.margins.bottomCm}`} см
+            </li>
+            <li>
+              •{" "}
+              {rules.pageNumber === "top-right"
+                ? "Бет номери: жогоруда оңдо (2.5 см)"
+                : "Бет номери: ылдыйда борбордо"}
+            </li>
+            <li>• i, ii… → 1, 2, 3 авто</li>
+            <li>• Авто-мазмун: 1., 1.1., 1.1.1.</li>
+            <li>• Титул барактарында номер жок</li>
+          </ul>
+        </div>
       </main>
 
       <footer className="mt-12 border-t bg-background/60 py-8 text-center text-xs text-muted-foreground backdrop-blur">
@@ -374,32 +394,38 @@ function OkUApp() {
   );
 }
 
-function StatusBadge({ label, delay }: { label: string; delay: number }) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setShow(true), delay);
-    return () => clearTimeout(t);
-  }, [delay]);
-  if (!show) return null;
+function LangSwitcher({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
   return (
-    <div className="pop-in flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs font-medium text-success">
-      <CheckCircle2 className="h-4 w-4" />
-      <span>{label}</span>
+    <div className="flex items-center gap-1 rounded-full border bg-background/70 p-1 backdrop-blur">
+      <Globe className="ml-1 h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+      {LANGS.map((l) => (
+        <button
+          key={l.code}
+          onClick={() => onChange(l.code)}
+          className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+            lang === l.code
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          aria-pressed={lang === l.code}
+        >
+          {l.label}
+        </button>
+      ))}
     </div>
   );
 }
 
-function ReferralBlock() {
+function ReferralBlock({ lang }: { lang: Lang }) {
   const inviteUrl = "https://o-key.ai/invite/167d4c94";
   const [copied, setCopied] = useState(false);
+  const tr = (k: keyof typeof I18N["kg"]) => t(lang, k);
 
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setCopied(true);
-      toast.success("Шилтеме көчүрүлдү!", {
-        description: "Досторуң менен бөлүш жана бонус ал 🎁",
-      });
+      toast.success(tr("copyToast"));
       setTimeout(() => setCopied(false), 2200);
     } catch {
       toast.error("Көчүрүү ишке ашпады");
@@ -407,7 +433,7 @@ function ReferralBlock() {
   }
 
   return (
-    <section aria-label="Referral" className="mb-8">
+    <section aria-label="Referral">
       <div className="neon-card p-5 md:p-6">
         <div className="flex flex-col items-stretch gap-4 md:flex-row md:items-center">
           <div
@@ -422,11 +448,9 @@ function ReferralBlock() {
           </div>
           <div className="flex-1">
             <h3 className="font-display text-base font-extrabold tracking-tight md:text-lg">
-              Досторуң менен бөлүш жана бонус ал!
+              {tr("referralTitle")}
             </h3>
-            <p className="mt-1 text-xs text-muted-foreground md:text-sm">
-              Arkadaşlarınla paylaş ve bonus kazan · BAK-AI invite link
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground md:text-sm">{tr("referralSub")}</p>
             <div className="mt-2 truncate rounded-md border bg-background/60 px-3 py-1.5 font-mono text-xs text-foreground/80">
               {inviteUrl}
             </div>
@@ -437,11 +461,11 @@ function ReferralBlock() {
           >
             {copied ? (
               <>
-                <Check className="mr-2 h-4 w-4" /> Көчүрүлдү
+                <Check className="mr-2 h-4 w-4" /> {tr("copied")}
               </>
             ) : (
               <>
-                <Copy className="mr-2 h-4 w-4" /> Шилтемени көчүрүү
+                <Copy className="mr-2 h-4 w-4" /> {tr("copy")}
               </>
             )}
           </Button>
@@ -465,6 +489,9 @@ function WhyCard({ icon, title, text }: { icon: ReactNode; title: string; text: 
     </div>
   );
 }
+
+// suppress unused KTMU warning when faculty rules are used directly
+void KTMU;
 
 function arrayBufferToBase64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
