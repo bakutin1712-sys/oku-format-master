@@ -3,7 +3,7 @@
 // with a PAGE field rendered in 12pt Times New Roman.
 import PizZip from "pizzip";
 import { NumberFormat, SectionType } from "docx";
-import { KTMU, cmToTwips } from "./ktmu-constants";
+import { KTMU, FACULTY_RULES, cmToTwips, type Faculty } from "./ktmu-constants";
 
 type SectionKind = "none" | "roman" | "arabic";
 
@@ -16,17 +16,17 @@ const KEYWORDS_NOT_DETECTED_WARNING = "Keywords not detected, using default KTMU
 const ROMAN_TRIGGER = /(?:БАШ\s*СӨЗ|АЛГЫ\s*СӨЗ|ÖN\s*SÖZ|ON\s*SOZ|PREFACE)/iu;
 const ARABIC_TRIGGER = /(?:КЫСКАЧА\s*МАЗМУНУ|ÖZET|OZET|SUMMARY)/iu;
 
-const FOOTER_REL_IDS: Record<Exclude<SectionKind, "none">, string> = {
-  roman: "rIdOkUFooterRoman",
-  arabic: "rIdOkUFooterArabic",
+const PART_REL_IDS: Record<Exclude<SectionKind, "none">, string> = {
+  roman: "rIdOkUPartRoman",
+  arabic: "rIdOkUPartArabic",
 };
-const FOOTER_FILES: Record<Exclude<SectionKind, "none">, string> = {
-  roman: "word/footerOkURoman.xml",
-  arabic: "word/footerOkUArabic.xml",
+const PART_FILES: Record<Exclude<SectionKind, "none">, string> = {
+  roman: "word/okuPartRoman.xml",
+  arabic: "word/okuPartArabic.xml",
 };
-const FOOTER_TARGETS: Record<Exclude<SectionKind, "none">, string> = {
-  roman: "footerOkURoman.xml",
-  arabic: "footerOkUArabic.xml",
+const PART_TARGETS: Record<Exclude<SectionKind, "none">, string> = {
+  roman: "okuPartRoman.xml",
+  arabic: "okuPartArabic.xml",
 };
 
 // Auto Table of Contents block (Times New Roman 12pt). Word renders dot
@@ -48,39 +48,48 @@ function buildTocXml(): string {
   );
 }
 
-function buildFooterXml(): string {
-  // Centered PAGE field, 12pt Times New Roman.
-  // pgNumType in sectPr controls the visual format (i/ii/iii vs 1/2/3).
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+// Page-number part. For "bottom-center" we emit a footer (centered);
+// for "top-right" we emit a header (right-aligned).
+function buildPageNumPart(position: "bottom-center" | "top-right"): {
+  rootTag: "w:ftr" | "w:hdr";
+  xml: string;
+} {
+  const rootTag = position === "top-right" ? "w:hdr" : "w:ftr";
+  const align = position === "top-right" ? "right" : "center";
+  const tnr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>`;
+  const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<${rootTag} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:p>
-    <w:pPr>
-      <w:jc w:val="center"/>
-      <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>
-    </w:pPr>
-    <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r>
-    <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:instrText xml:space="preserve"> PAGE   \\* MERGEFORMAT </w:instrText></w:r>
-    <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>
+    <w:pPr><w:jc w:val="${align}"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr>
+    <w:r>${tnr}<w:fldChar w:fldCharType="begin"/></w:r>
+    <w:r>${tnr}<w:instrText xml:space="preserve"> PAGE   \\* MERGEFORMAT </w:instrText></w:r>
+    <w:r>${tnr}<w:fldChar w:fldCharType="end"/></w:r>
   </w:p>
-</w:ftr>`;
+</${rootTag}>`;
+  return { rootTag, xml };
 }
 
-const SECT_PR = (kind: SectionKind) => {
-  const left = cmToTwips(KTMU.margins.leftCm);
-  const right = cmToTwips(KTMU.margins.rightCm);
-  const top = cmToTwips(KTMU.margins.topCm);
-  const bottom = cmToTwips(KTMU.margins.bottomCm);
+function buildSectPr(kind: SectionKind, faculty: Faculty): string {
+  const rules = FACULTY_RULES[faculty];
+  const left = cmToTwips(rules.margins.leftCm);
+  const right = cmToTwips(rules.margins.rightCm);
+  const top = cmToTwips(rules.margins.topCm);
+  const bottom = cmToTwips(rules.margins.bottomCm);
+  // Tourism: page number 2.5 cm from top edge.
+  const headerTwips = rules.pageNumber === "top-right" ? cmToTwips(2.5) : 708;
   let pgNumType = "";
-  let footerRef = "";
+  let partRef = "";
   if (kind === "roman") {
     pgNumType = `<w:pgNumType w:fmt="${NumberFormat.LOWER_ROMAN}" w:start="1"/>`;
-    footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.roman}"/>`;
+    const refTag = rules.pageNumber === "top-right" ? "headerReference" : "footerReference";
+    partRef = `<w:${refTag} w:type="default" r:id="${PART_REL_IDS.roman}"/>`;
   } else if (kind === "arabic") {
     pgNumType = `<w:pgNumType w:fmt="${NumberFormat.DECIMAL}" w:start="1"/>`;
-    footerRef = `<w:footerReference w:type="default" r:id="${FOOTER_REL_IDS.arabic}"/>`;
+    const refTag = rules.pageNumber === "top-right" ? "headerReference" : "footerReference";
+    partRef = `<w:${refTag} w:type="default" r:id="${PART_REL_IDS.arabic}"/>`;
   }
-  return `<w:sectPr>${footerRef}<w:type w:val="${SectionType.NEXT_PAGE}"/><w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="708" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
-};
+  return `<w:sectPr>${partRef}<w:type w:val="${SectionType.NEXT_PAGE}"/><w:pgSz w:w="${KTMU.pageSize.wTwips}" w:h="${KTMU.pageSize.hTwips}"/><w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="${headerTwips}" w:footer="708" w:gutter="0"/>${pgNumType}<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>`;
+}
 
 const normalizeForSearch = (text: string) => text.normalize("NFC").toLocaleUpperCase("tr-TR");
 
@@ -110,19 +119,27 @@ function getThirdPageStartParagraph(paragraphs: { xml: string; text: string }[])
   return pageStarts[2] ?? Math.min(2, Math.max(0, paragraphs.length - 1));
 }
 
-function ensureRelationship(relsXml: string, id: string, target: string): string {
+function ensureRelationship(
+  relsXml: string,
+  id: string,
+  target: string,
+  type: "footer" | "header",
+): string {
   if (relsXml.includes(`Id="${id}"`)) return relsXml;
-  const rel = `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="${target}"/>`;
+  const rel = `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`;
   return relsXml.replace(/<\/Relationships>/, `${rel}</Relationships>`);
 }
 
-function ensureContentType(ctXml: string, partName: string): string {
+function ensureContentType(ctXml: string, partName: string, type: "footer" | "header"): string {
   if (ctXml.includes(`PartName="${partName}"`)) return ctXml;
-  const override = `<Override PartName="${partName}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>`;
+  const override = `<Override PartName="${partName}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.${type}+xml"/>`;
   return ctXml.replace(/<\/Types>/, `${override}</Types>`);
 }
 
-export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): KtmuFormattingResult {
+export function applyKtmuFormatting(
+  input: ArrayBuffer | Uint8Array,
+  faculty: Faculty = "general",
+): KtmuFormattingResult {
   const zip = new PizZip(input);
   const docFile = zip.file("word/document.xml");
   if (!docFile) throw new Error("Invalid .docx: word/document.xml not found");
@@ -188,44 +205,42 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): KtmuFormat
     const kind = injectAtLastPara.get(i);
     let xmlOut = p.xml;
     if (kind) {
-      const sectPr = SECT_PR(kind);
+      const sectPr = buildSectPr(kind, faculty);
       if (/<w:pPr>[\s\S]*?<\/w:pPr>/.test(xmlOut)) {
         xmlOut = xmlOut.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/, `<w:pPr>$1${sectPr}</w:pPr>`);
       } else {
         xmlOut = xmlOut.replace(/<w:p(\b[^>]*)>/, `<w:p$1><w:pPr>${sectPr}</w:pPr>`);
       }
     }
-    // Inject auto-TOC right BEFORE the Arabic section start (i.e. after Önsöz/Abstract pages).
     if (arabicStart >= 0 && i === arabicStart) {
       return buildTocXml() + xmlOut;
     }
     return xmlOut;
   });
 
-  const newBody = newParagraphs.join("") + SECT_PR(finalSectionKind);
+  const newBody = newParagraphs.join("") + buildSectPr(finalSectionKind, faculty);
   xml = xml.replace(/<w:body>[\s\S]*?<\/w:body>/, `<w:body>${newBody}</w:body>`);
   zip.file("word/document.xml", xml);
 
-  // Add footer parts (only if used)
   const usedKinds = new Set<SectionKind>([finalSectionKind, ...breaks.map((b) => b.kind)]);
-  const footerXml = buildFooterXml();
+  const position = FACULTY_RULES[faculty].pageNumber;
+  const part = buildPageNumPart(position);
+  const partKind: "footer" | "header" = position === "top-right" ? "header" : "footer";
 
-  // Update relationships
   const relsPath = "word/_rels/document.xml.rels";
   let relsXml = zip.file(relsPath)?.asText();
   if (!relsXml) {
     relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
   }
 
-  // Update content types
   const ctPath = "[Content_Types].xml";
   let ctXml = zip.file(ctPath)?.asText() ?? "";
 
   (["roman", "arabic"] as const).forEach((kind) => {
     if (!usedKinds.has(kind)) return;
-    zip.file(FOOTER_FILES[kind], footerXml);
-    relsXml = ensureRelationship(relsXml!, FOOTER_REL_IDS[kind], FOOTER_TARGETS[kind]);
-    ctXml = ensureContentType(ctXml, "/" + FOOTER_FILES[kind]);
+    zip.file(PART_FILES[kind], part.xml);
+    relsXml = ensureRelationship(relsXml!, PART_REL_IDS[kind], PART_TARGETS[kind], partKind);
+    ctXml = ensureContentType(ctXml, "/" + PART_FILES[kind], partKind);
   });
 
   zip.file(relsPath, relsXml);
