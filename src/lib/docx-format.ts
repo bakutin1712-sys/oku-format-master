@@ -136,7 +136,10 @@ function ensureContentType(ctXml: string, partName: string, type: "footer" | "he
   return ctXml.replace(/<\/Types>/, `${override}</Types>`);
 }
 
-export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): KtmuFormattingResult {
+export function applyKtmuFormatting(
+  input: ArrayBuffer | Uint8Array,
+  faculty: Faculty = "general",
+): KtmuFormattingResult {
   const zip = new PizZip(input);
   const docFile = zip.file("word/document.xml");
   if (!docFile) throw new Error("Invalid .docx: word/document.xml not found");
@@ -202,44 +205,42 @@ export function applyKtmuFormatting(input: ArrayBuffer | Uint8Array): KtmuFormat
     const kind = injectAtLastPara.get(i);
     let xmlOut = p.xml;
     if (kind) {
-      const sectPr = SECT_PR(kind);
+      const sectPr = buildSectPr(kind, faculty);
       if (/<w:pPr>[\s\S]*?<\/w:pPr>/.test(xmlOut)) {
         xmlOut = xmlOut.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/, `<w:pPr>$1${sectPr}</w:pPr>`);
       } else {
         xmlOut = xmlOut.replace(/<w:p(\b[^>]*)>/, `<w:p$1><w:pPr>${sectPr}</w:pPr>`);
       }
     }
-    // Inject auto-TOC right BEFORE the Arabic section start (i.e. after Önsöz/Abstract pages).
     if (arabicStart >= 0 && i === arabicStart) {
       return buildTocXml() + xmlOut;
     }
     return xmlOut;
   });
 
-  const newBody = newParagraphs.join("") + SECT_PR(finalSectionKind);
+  const newBody = newParagraphs.join("") + buildSectPr(finalSectionKind, faculty);
   xml = xml.replace(/<w:body>[\s\S]*?<\/w:body>/, `<w:body>${newBody}</w:body>`);
   zip.file("word/document.xml", xml);
 
-  // Add footer parts (only if used)
   const usedKinds = new Set<SectionKind>([finalSectionKind, ...breaks.map((b) => b.kind)]);
-  const footerXml = buildFooterXml();
+  const position = FACULTY_RULES[faculty].pageNumber;
+  const part = buildPageNumPart(position);
+  const partKind: "footer" | "header" = position === "top-right" ? "header" : "footer";
 
-  // Update relationships
   const relsPath = "word/_rels/document.xml.rels";
   let relsXml = zip.file(relsPath)?.asText();
   if (!relsXml) {
     relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
   }
 
-  // Update content types
   const ctPath = "[Content_Types].xml";
   let ctXml = zip.file(ctPath)?.asText() ?? "";
 
   (["roman", "arabic"] as const).forEach((kind) => {
     if (!usedKinds.has(kind)) return;
-    zip.file(FOOTER_FILES[kind], footerXml);
-    relsXml = ensureRelationship(relsXml!, FOOTER_REL_IDS[kind], FOOTER_TARGETS[kind]);
-    ctXml = ensureContentType(ctXml, "/" + FOOTER_FILES[kind]);
+    zip.file(PART_FILES[kind], part.xml);
+    relsXml = ensureRelationship(relsXml!, PART_REL_IDS[kind], PART_TARGETS[kind], partKind);
+    ctXml = ensureContentType(ctXml, "/" + PART_FILES[kind], partKind);
   });
 
   zip.file(relsPath, relsXml);
