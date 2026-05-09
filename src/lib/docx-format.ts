@@ -3,7 +3,7 @@
 // with a PAGE field rendered in 12pt Times New Roman.
 import PizZip from "pizzip";
 import { NumberFormat, SectionType } from "docx";
-import { KTMU, cmToTwips } from "./ktmu-constants";
+import { KTMU, FACULTY_RULES, cmToTwips, type Faculty } from "./ktmu-constants";
 
 type SectionKind = "none" | "roman" | "arabic";
 
