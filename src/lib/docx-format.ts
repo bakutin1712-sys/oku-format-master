@@ -119,15 +119,20 @@ function getThirdPageStartParagraph(paragraphs: { xml: string; text: string }[])
   return pageStarts[2] ?? Math.min(2, Math.max(0, paragraphs.length - 1));
 }
 
-function ensureRelationship(relsXml: string, id: string, target: string): string {
+function ensureRelationship(
+  relsXml: string,
+  id: string,
+  target: string,
+  type: "footer" | "header",
+): string {
   if (relsXml.includes(`Id="${id}"`)) return relsXml;
-  const rel = `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="${target}"/>`;
+  const rel = `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`;
   return relsXml.replace(/<\/Relationships>/, `${rel}</Relationships>`);
 }
 
-function ensureContentType(ctXml: string, partName: string): string {
+function ensureContentType(ctXml: string, partName: string, type: "footer" | "header"): string {
   if (ctXml.includes(`PartName="${partName}"`)) return ctXml;
-  const override = `<Override PartName="${partName}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>`;
+  const override = `<Override PartName="${partName}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.${type}+xml"/>`;
   return ctXml.replace(/<\/Types>/, `${override}</Types>`);
 }
 
