@@ -232,7 +232,7 @@ export function applyKtmuFormatting(
         xmlOut = xmlOut.replace(/<w:p(\b[^>]*)>/, `<w:p$1><w:pPr>${sectPr}</w:pPr>`);
       }
     }
-    if (arabicStart >= 0 && i === arabicStart) {
+    if (i === arabicTocIdx) {
       return buildTocXml() + xmlOut;
     }
     return xmlOut;
