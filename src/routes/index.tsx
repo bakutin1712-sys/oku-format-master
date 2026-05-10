@@ -350,25 +350,6 @@ function OkUApp() {
           <ReferralBlock lang={lang} />
         </div>
 
-        {/* 3. Benefit cards (moved BELOW referral) */}
-        <section className="mt-8 grid gap-4 md:grid-cols-3">
-          <WhyCard
-            icon={<Clock className="h-6 w-6" />}
-            title={tr("fast")}
-            text={tr("fastDesc")}
-          />
-          <WhyCard
-            icon={<ShieldCheck className="h-6 w-6" />}
-            title={tr("accurate")}
-            text={tr("accurateDesc")}
-          />
-          <WhyCard
-            icon={<Printer className="h-6 w-6" />}
-            title={tr("print")}
-            text={tr("printDesc")}
-          />
-        </section>
-
         <div className="mt-6 glass-card rounded-2xl p-5 text-xs text-muted-foreground">
           <p className="mb-2 font-semibold text-foreground">KTMU · {rules.label}</p>
           <ul className="grid gap-1 md:grid-cols-2">
