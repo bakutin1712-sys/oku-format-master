@@ -178,20 +178,37 @@ export function applyKtmuFormatting(
   const breaks: Break[] = [];
   let warning: string | undefined;
 
-  const romanStart = paragraphs.findIndex((p) => matchesTrigger(p.text, ROMAN_TRIGGER));
-  const arabicStart =
-    romanStart >= 0
-      ? paragraphs.findIndex((p, i) => i > romanStart && matchesTrigger(p.text, ARABIC_TRIGGER))
-      : -1;
+  const arabicStart = paragraphs.findIndex((p) => matchesTrigger(p.text, ARABIC_TRIGGER));
 
-  if (romanStart >= 0) breaks.push({ paraIdx: romanStart, kind: "roman" });
-  if (arabicStart >= 0) breaks.push({ paraIdx: arabicStart, kind: "arabic" });
+  if (faculty === "tourism") {
+    // STRICT 3-SECTION ENGINE for Tourism Faculty (Bitirme Tezi Yönergesi, Ek-A):
+    //   Section 1 = Dış Kapak + İç Kapak (first 2 pages, NO page numbers)
+    //   Section 2 = preliminary pages (lowerRoman i, ii, iii…)
+    //   Section 3 = main body from GİRİŞ onward (decimal 1, 2, 3…)
+    const romanStart = getThirdPageStartParagraph(paragraphs);
+    const arabicIdx = arabicStart > romanStart ? arabicStart : -1;
+    breaks.push({ paraIdx: romanStart, kind: "roman" });
+    if (arabicIdx >= 0) {
+      breaks.push({ paraIdx: arabicIdx, kind: "arabic" });
+    } else {
+      warning = KEYWORDS_NOT_DETECTED_WARNING;
+    }
+  } else {
+    const romanStart = paragraphs.findIndex((p) => matchesTrigger(p.text, ROMAN_TRIGGER));
+    const arabicIdx =
+      romanStart >= 0
+        ? paragraphs.findIndex((p, i) => i > romanStart && matchesTrigger(p.text, ARABIC_TRIGGER))
+        : arabicStart;
 
-  if (romanStart < 0) {
-    breaks.push({ paraIdx: getThirdPageStartParagraph(paragraphs), kind: "arabic" });
-    warning = KEYWORDS_NOT_DETECTED_WARNING;
-  } else if (arabicStart < 0) {
-    warning = KEYWORDS_NOT_DETECTED_WARNING;
+    if (romanStart >= 0) breaks.push({ paraIdx: romanStart, kind: "roman" });
+    if (arabicIdx >= 0) breaks.push({ paraIdx: arabicIdx, kind: "arabic" });
+
+    if (romanStart < 0) {
+      breaks.push({ paraIdx: getThirdPageStartParagraph(paragraphs), kind: "arabic" });
+      warning = KEYWORDS_NOT_DETECTED_WARNING;
+    } else if (arabicIdx < 0) {
+      warning = KEYWORDS_NOT_DETECTED_WARNING;
+    }
   }
 
   const sectionStarts: { start: number; kind: SectionKind }[] = [{ start: 0, kind: "none" }];
@@ -204,6 +221,7 @@ export function applyKtmuFormatting(
   }
   const finalSectionKind = sectionStarts[sectionStarts.length - 1].kind;
 
+  const arabicTocIdx = breaks.find((b) => b.kind === "arabic")?.paraIdx ?? -1;
   const newParagraphs = paragraphs.map((p, i) => {
     const kind = injectAtLastPara.get(i);
     let xmlOut = p.xml;
@@ -215,7 +233,7 @@ export function applyKtmuFormatting(
         xmlOut = xmlOut.replace(/<w:p(\b[^>]*)>/, `<w:p$1><w:pPr>${sectPr}</w:pPr>`);
       }
     }
-    if (arabicStart >= 0 && i === arabicStart) {
+    if (i === arabicTocIdx) {
       return buildTocXml() + xmlOut;
     }
     return xmlOut;
