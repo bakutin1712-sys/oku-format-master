@@ -51,7 +51,7 @@ type Stage = "upload" | "checking" | "payment" | "processing" | "done";
 
 function OkUApp() {
   const [lang, setLang] = useState<Lang>("kg");
-  const [faculty, setFaculty] = useState<Faculty>("general");
+  const [faculty, setFaculty] = useState<Faculty>("tourism");
   const [stage, setStage] = useState<Stage>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [originalBuffer, setOriginalBuffer] = useState<ArrayBuffer | null>(null);
@@ -208,11 +208,12 @@ function OkUApp() {
                   <option value="general">{tr("facultyGeneral")}</option>
                   <option value="tourism">{tr("facultyTourism")}</option>
                 </select>
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  {`${rules.margins.leftCm}/${rules.margins.rightCm}/${rules.margins.topCm}/${rules.margins.bottomCm} см · `}
+                <p className="mt-1.5 rounded-md border border-border/60 bg-secondary/40 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+                  <span className="font-semibold text-foreground">{rules.label}:</span>{" "}
+                  {`${rules.margins.topCm}/${rules.margins.leftCm}/${rules.margins.bottomCm}/${rules.margins.rightCm} см · `}
                   {rules.pageNumber === "top-right"
-                    ? "Бет номери: жогоруда оңдо"
-                    : "Бет номери: ылдыйда борбордо"}
+                    ? "i, ii… → 1, 2, 3 (жогоруда оңдо, 2.5 см)"
+                    : "1, 2, 3 (ылдыйда борбордо)"}
                 </p>
               </div>
 
@@ -276,6 +277,10 @@ function OkUApp() {
                 <div className="text-center text-sm">
                   <div className="text-xl font-bold">555 KGS</div>
                   <div className="text-muted-foreground">BakayBank · BAK-AI</div>
+                </div>
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  {tr("payTrust")}
                 </div>
               </div>
               <Button variant="outline" className="mt-4 w-full" onClick={simulatePayment}>

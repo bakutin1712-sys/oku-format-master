@@ -14,7 +14,10 @@ export type KtmuFormattingResult = {
 
 const KEYWORDS_NOT_DETECTED_WARNING = "Keywords not detected, using default KTMU structure.";
 const ROMAN_TRIGGER = /(?:БАШ\s*СӨЗ|АЛГЫ\s*СӨЗ|ÖN\s*SÖZ|ON\s*SOZ|PREFACE)/iu;
-const ARABIC_TRIGGER = /(?:КЫСКАЧА\s*МАЗМУНУ|ÖZET|OZET|SUMMARY)/iu;
+// Arabic numbering starts at the Introduction section in any of the 4 supported languages.
+// "Özet/Summary/Кыскача мазмуну" kept as a secondary fallback for legacy templates.
+const ARABIC_TRIGGER =
+  /(?:GİRİŞ|GIRIS|INTRODUCTION|КИРИШ\s*СӨЗ|КИРИШ[ҮУ]|КИРИШ|ВВЕДЕНИЕ|КЫСКАЧА\s*МАЗМУНУ|ÖZET|OZET|SUMMARY)/iu;
 
 const PART_REL_IDS: Record<Exclude<SectionKind, "none">, string> = {
   roman: "rIdOkUPartRoman",
