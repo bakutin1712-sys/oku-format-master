@@ -221,6 +221,7 @@ export function applyKtmuFormatting(
   }
   const finalSectionKind = sectionStarts[sectionStarts.length - 1].kind;
 
+  const arabicTocIdx = breaks.find((b) => b.kind === "arabic")?.paraIdx ?? -1;
   const newParagraphs = paragraphs.map((p, i) => {
     const kind = injectAtLastPara.get(i);
     let xmlOut = p.xml;
