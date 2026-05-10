@@ -51,7 +51,7 @@ type Stage = "upload" | "checking" | "payment" | "processing" | "done";
 
 function OkUApp() {
   const [lang, setLang] = useState<Lang>("kg");
-  const [faculty, setFaculty] = useState<Faculty>("general");
+  const [faculty, setFaculty] = useState<Faculty>("tourism");
   const [stage, setStage] = useState<Stage>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [originalBuffer, setOriginalBuffer] = useState<ArrayBuffer | null>(null);
