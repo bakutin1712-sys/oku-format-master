@@ -40,7 +40,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "OkU — KTMU diplom · BAK-AI" },
       {
         property: "og:description",
-        content: "Дипломду жүктө, BakayBank аркылуу төлө, даяр DOCX алып кет.",
+        content: "Дипломду жүктө, MBANK аркылуу төлө, даяр DOCX алып кет.",
       },
     ],
   }),
@@ -263,11 +263,11 @@ function OkUApp() {
               <p className="mb-4 text-sm text-muted-foreground">{tr("paySub")}</p>
               <div className="flex flex-col items-center gap-3 rounded-xl border bg-background p-5">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-                  <CreditCard className="h-4 w-4" /> BakayBank
+                  <CreditCard className="h-4 w-4" /> MBANK
                 </div>
                 <img
                   src={bakAiImg}
-                  alt="BakayBank · BAK-AI"
+                  alt="MBANK · BAK-AI"
                   width={224}
                   height={224}
                   loading="lazy"
@@ -276,7 +276,7 @@ function OkUApp() {
                 />
                 <div className="text-center text-sm">
                   <div className="text-xl font-bold">555 KGS</div>
-                  <div className="text-muted-foreground">BakayBank · BAK-AI</div>
+                  <div className="text-muted-foreground">MBANK · BAK-AI</div>
                 </div>
                 <div className="inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success">
                   <ShieldCheck className="h-3.5 w-3.5" />
