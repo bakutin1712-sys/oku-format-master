@@ -10,6 +10,7 @@ import { formatDocxKtmu } from "@/lib/docx.functions";
 import { KTMU, FACULTY_RULES, type Faculty } from "@/lib/ktmu-constants";
 import { I18N, LANGS, type Lang, t } from "@/lib/i18n";
 import bakAiImg from "@/assets/bak-ai.jpg";
+import mbankQr from "@/assets/mbank-qr.jpeg";
 import {
   Upload,
   Loader2,
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "OkU — KTMU diplom · BAK-AI" },
       {
         property: "og:description",
-        content: "Дипломду жүктө, BakayBank аркылуу төлө, даяр DOCX алып кет.",
+        content: "Дипломду жүктө, MBANK аркылуу төлө, даяр DOCX алып кет.",
       },
     ],
   }),
@@ -261,24 +262,48 @@ function OkUApp() {
             <>
               <h2 className="mb-1 text-lg font-bold">{tr("payTitle")}</h2>
               <p className="mb-4 text-sm text-muted-foreground">{tr("paySub")}</p>
-              <div className="flex flex-col items-center gap-3 rounded-xl border bg-background p-5">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-                  <CreditCard className="h-4 w-4" /> BakayBank
+              <div
+                className="flex flex-col items-center gap-3 rounded-xl border-2 bg-white p-5"
+                style={{ borderColor: "#00A859" }}
+              >
+                <div
+                  className="flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest text-white"
+                  style={{ backgroundColor: "#00A859" }}
+                >
+                  <CreditCard className="h-4 w-4" /> MBANK
                 </div>
                 <img
-                  src={bakAiImg}
-                  alt="BakayBank · BAK-AI"
+                  src={mbankQr}
+                  alt="MBANK QR — 555 KGS"
                   width={224}
                   height={224}
                   loading="lazy"
-                  className="h-56 w-56 rounded-xl object-cover"
+                  className="h-56 w-56 rounded-xl bg-white object-contain p-2"
                   style={{ boxShadow: "var(--shadow-soft)" }}
                 />
                 <div className="text-center text-sm">
-                  <div className="text-xl font-bold">555 KGS</div>
-                  <div className="text-muted-foreground">BakayBank · BAK-AI</div>
+                  <div className="text-2xl font-extrabold" style={{ color: "#00A859" }}>
+                    555 KGS
+                  </div>
+                  <div className="text-muted-foreground">MBANK · BAK-AI</div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success">
+                <div className="flex items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+                  <img
+                    src={bakAiImg}
+                    alt="BAK-AI brand stamp"
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 rounded-md object-cover"
+                  />
+                  <div className="text-left text-[11px] leading-tight">
+                    <div className="font-bold">BAK-AI</div>
+                    <div className="text-muted-foreground">KTMU · OkU Precision</div>
+                  </div>
+                </div>
+                <div
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold text-white"
+                  style={{ backgroundColor: "#00A859" }}
+                >
                   <ShieldCheck className="h-3.5 w-3.5" />
                   {tr("payTrust")}
                 </div>
